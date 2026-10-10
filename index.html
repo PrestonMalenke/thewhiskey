@@ -80,7 +80,7 @@ function render(){
     '<span class="field grabbed '+(mode==="stock"?"editing":"")+'" aria-label="Grabbed '+g(i)+'"><small>Grabbed</small><b>'+g(i)+'</b></span>'+
     '<div class="counter"><button aria-label="Decrease '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!count?"disabled":"")+'>−</button><output aria-label="Current '+(mode==="list"?"needed":"grabbed")+' count">'+count+'</output><button class="plus" aria-label="Increase '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(count>=max?"disabled":"")+'>+</button></div></div></div>'
   }).join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>';
- }).join("")||'<div class="empty">No matching bottles. Try another search or shelf.</div>';
+ }).join("")||'<div class="empty">No bottles needed yet. Switch to List Making to create your stock list.</div>';
 }
 el("shelves").addEventListener("click",e=>{
  const btn=e.target.closest("button[data-id]");if(!btn)return;
