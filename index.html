@@ -76,11 +76,19 @@ footer{margin-top:40px;color:#83969f;font-size:12px}
  .counter{grid-column:1/-1;justify-content:flex-end}
  .counter button{width:58px;height:48px}
 }
+
+.reset-tools{margin-top:14px;margin-bottom:16px}.reset-tools .btn{min-height:46px}
+#resetDialog{width:min(92vw,420px);max-width:420px;max-height:calc(100% - 32px);padding:0;border:2px solid #e7b86e;border-radius:20px;background:#1b2830;color:#f5f5f2;box-shadow:0 20px 70px #000b}
+#resetDialog::backdrop{background:rgba(2,8,12,.83)}
+.dialog-body{padding:26px 22px}.dialog-eyebrow{color:#f6ca81;letter-spacing:.15em;font-size:12px;font-weight:900}.dialog-body h2{font-family:Georgia,serif;font-size:29px;margin:10px 0}.dialog-body p{color:#c4d1d4;font-size:16px;line-height:1.55}.dialog-actions{display:flex;gap:10px;margin-top:24px}.dialog-actions .btn{flex:1;min-height:52px;font-size:15px}
+.btn.danger{background:#a63e3e;color:white;border-color:#e18a8a}.btn.danger:hover{background:#bd4747}
+@media(max-width:390px){.dialog-actions{flex-direction:column}.reset-tools .btn{flex:1}}
 </style>
 </head>
 <body><main class="shell">
 <header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Build your list, then track bottles grabbed. Counts stay on this device.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
-<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="tools"><button class="btn" id="reset">Reset active count</button></div>
+<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="tools reset-tools"><button class="btn" id="resetNeeded" type="button">Reset Needed</button><button class="btn" id="resetGrabbed" type="button">Reset Grabbed</button></div>
+<dialog id="resetDialog" aria-labelledby="resetTitle" aria-describedby="resetDescription"><div class="dialog-body"><div class="dialog-eyebrow">CONFIRM RESET</div><h2 id="resetTitle">Reset counts?</h2><p id="resetDescription"></p><div class="dialog-actions"><button class="btn" id="cancelReset" type="button">Cancel</button><button class="btn danger" id="confirmReset" type="button">Confirm Reset</button></div></div></dialog>
 <div id="shelves"></div>
 <p class="note">Par is fixed by the stock sheet. In List Making, edit Needed (up to Par). In Stocking, edit Grabbed (up to Needed). Switching modes preserves both values. Counts are saved locally on this device.</p>
 <footer>THE WHISKEY · STOCK CHECK</footer></main>
@@ -141,14 +149,33 @@ el("shelves").addEventListener("click",e=>{
 el("listMode").addEventListener("click",()=>{mode="list";save();render()});
 el("stockMode").addEventListener("click",()=>{mode="stock";save();render()});
 
-el("reset").addEventListener("click",()=>{
- const data=mode==="list"?needed:grabbed;
- if(!Object.values(data).some(Boolean))return;
- const label=mode==="list"?"needed counts (and any grabbed counts)":"grabbed counts";
- if(confirm("Clear all "+label+"? This cannot be undone.")){
-  if(mode==="list"){needed={};grabbed={}}else grabbed={};
-  save();render();
- }
+const resetDialog=el("resetDialog");
+let pendingReset=null,lastResetTrigger=null;
+function openReset(kind,trigger){
+ pendingReset=kind;lastResetTrigger=trigger;
+ el("resetTitle").textContent=kind==="needed"?"Reset Needed list?":"Reset Grabbed list?";
+ el("resetDescription").textContent=kind==="needed"
+  ?"This will set all Needed counts to zero. All Grabbed counts will also be cleared because there will be no bottles on the list. This cannot be undone."
+  :"This will set all Grabbed counts to zero while keeping the Needed list exactly as it is. This cannot be undone.";
+ el("confirmReset").textContent=kind==="needed"?"Reset Needed":"Reset Grabbed";
+ if(typeof resetDialog.showModal==="function")resetDialog.showModal();
+ else resetDialog.setAttribute("open","");
+}
+function closeReset(){
+ if(typeof resetDialog.close==="function"&&resetDialog.open)resetDialog.close();
+ else resetDialog.removeAttribute("open");
+ pendingReset=null;lastResetTrigger?.focus();
+}
+el("resetNeeded").addEventListener("click",e=>openReset("needed",e.currentTarget));
+el("resetGrabbed").addEventListener("click",e=>openReset("grabbed",e.currentTarget));
+el("cancelReset").addEventListener("click",closeReset);
+resetDialog.addEventListener("cancel",e=>{e.preventDefault();closeReset()});
+resetDialog.addEventListener("click",e=>{if(e.target===resetDialog)closeReset()});
+el("confirmReset").addEventListener("click",()=>{
+ if(pendingReset==="needed"){needed={};grabbed={}}
+ else if(pendingReset==="grabbed")grabbed={};
+ else return;
+ save();closeReset();render();
 });
 
 render();
