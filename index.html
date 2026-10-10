@@ -19,15 +19,29 @@ header{display:flex;justify-content:space-between;align-items:center;gap:16px;ma
 footer{margin-top:40px;color:#83969f;font-size:12px}
 @media(max-width:540px){.shell{padding:18px 12px 96px}.brand h1{font-size:36px}.stat{padding:14px 12px}.stat strong{font-size:29px}.stat span{font-size:11px}.item{padding:10px 12px;gap:8px}.name{font-size:14px}.controls{gap:7px}.stock{padding:6px 8px;gap:4px}.stock-number{font-size:21px}.stock-label{font-size:10px}.counter{gap:3px}.counter button{height:40px;width:40px}.counter output{width:28px}.btn{padding:11px 13px}.shelf h2{font-size:26px}}
 @media print{body{background:white;color:black}.tools,.tabs,.counter button,.note,footer{display:none!important}.shell{max-width:100%;padding:0}.stat,.items{background:white;border-color:#ddd}.stat strong{color:black}.item.active{background:#eee}.counter output{color:black}.sub,.stock,.shelf small{color:#444}.shelf{break-inside:avoid}}
+
+.mode-switch{display:flex;gap:8px;margin:18px 0 8px;background:#1b2830;border:1px solid #40505a;padding:6px;border-radius:14px}
+.mode-button{flex:1;border:0;border-radius:10px;padding:13px 12px;background:transparent;color:#b6c5ca;font-weight:800;font-size:14px}
+.mode-button[aria-pressed="true"]{background:#e7b86e;color:#20282c}
+.mode-hint{color:#b3c1c7;font-size:13px;margin:2px 0 17px}
+.field{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;border:1px solid #4b5c64;border-radius:10px;padding:5px 9px;background:#26353d;gap:2px}
+.field b{font-size:21px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
+.field small{text-transform:uppercase;letter-spacing:.06em;font-weight:800;font-size:10px;color:#bbccd3}
+.field.par{border-color:#bd965e;color:#fff1d1}
+.field.needed{border-color:#759baf;color:#e2f5ff}
+.field.grabbed{border-color:#619b79;color:#d3ffe2}
+.field.editing{box-shadow:inset 0 0 0 1px #edbe73}
+.item .controls{gap:7px}.counter button:disabled{opacity:.27;cursor:not-allowed}
+@media(max-width:600px){.item{grid-template-columns:1fr;gap:8px}.item .controls{justify-content:flex-end}.field{min-width:49px;padding:5px 7px}.field b{font-size:20px}.counter button{width:40px;height:40px}.name{font-size:15px}}
 </style>
 </head>
 <body><main class="shell">
-<header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Tap <strong>+</strong> for every bottle needed. Your count stays on this device.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
-<div class="summary" aria-live="polite"><div class="stat"><strong id="bottleTotal">0</strong><span>Bottles to pull</span></div><div class="stat"><strong id="itemTotal">0</strong><span>Products needed</span></div><div class="stat"><strong id="remaining">38</strong><span>Products at zero</span></div></div>
-<div class="tools"><input type="search" id="search" class="search" placeholder="Search bottles…" aria-label="Search bottles" autocomplete="off"><button class="btn" id="export">Export CSV</button><button class="btn" id="copy">Copy list</button><button class="btn" id="reset">Reset counts</button></div>
+<header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Build your list, then track bottles grabbed. Counts stay on this device.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
+<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="summary" aria-live="polite"><div class="stat"><strong id="bottleTotal">0</strong><span>Bottles needed</span></div><div class="stat"><strong id="itemTotal">0</strong><span>Products needed</span></div><div class="stat"><strong id="remaining">38</strong><span>Products at zero</span></div></div>
+<div class="tools"><input type="search" id="search" class="search" placeholder="Search bottles…" aria-label="Search bottles" autocomplete="off"><button class="btn" id="export">Export CSV</button><button class="btn" id="copy">Copy list</button><button class="btn" id="reset">Reset active count</button></div>
 <div class="tabs" role="tablist" aria-label="Shelf filter"><button class="tab" role="tab" data-view="all" aria-selected="true">All bottles</button><button class="tab" role="tab" data-view="top" aria-selected="false">Top shelf</button><button class="tab" role="tab" data-view="bottom" aria-selected="false">Bottom shelf</button><button class="tab" role="tab" data-view="needed" aria-selected="false">Needed only</button></div>
 <div id="shelves"></div>
-<p class="note">“Stock list” quantities are the reference inventory from October 10, 2026. Counters represent how many bottles to pull, capped at each product’s par level, not a subtraction from inventory. Counts are saved locally in this browser, not shared across devices. Export or copy your list to share it.</p>
+<p class="note">Par is fixed by the stock sheet. In List Making, edit Needed (up to Par). In Stocking, edit Grabbed (up to Needed). Switching modes preserves both values. Saved locally on this device; export or copy to share.</p>
 <footer>THE WHISKEY · STOCK CHECK</footer></main>
 <script>
 "use strict";
@@ -35,31 +49,89 @@ const INVENTORY=[
 ["top","Peach Schnapps",2],["top","Pamplemousse",2],["top","Bénédictine",1],["top","Aperol",2],["top","Campari",2],["top","Amaro Nonino",1],["top","Cointreau",2],["top","Amaro CioCiaro",1],["top","Fernet",2],["top","Giffard Violette",2],["top","Elderflower Liqueur",1],["top","Allspice Dram",2],["top","Amaretto",2],["top","Borghetti Espresso",2],["top","Oatrageous Coconut",2],["top","Oatrageous Bourbon Cream",2],["top","White Chocolate Liqueur",2],["top","Pistachio Liqueur",2],["top","Cartron Banane Liqueur",2],["top","Tito's Vodka",2],["top","Old Raj Gin (Red)",2],["top","Bacardi Spiced Rum",2],["top","Por Lo Bueno Mezcal",2],["top","Jameson",2],["top","Tokki Black",2],["top","Elijah Craig Toasted Rye",2],
 ["bottom","Wheatley Vodka",6],["bottom","Spring 44 Gin",6],["bottom","Bacardi Blanca",6],["bottom","Corazón Blanco",6],["bottom","Evan Williams",6],["bottom","Old Forester Rye",6],["bottom","Irish Whiskey (unspecified)",3],["bottom","Scotch (unspecified)",3],["bottom","Still Austin Rye",2],["bottom","Carpano Antica Formula",2],["bottom","Hine Cognac",1],["bottom","Brugal Añejo",1]
 ].map(([s,n,q],i)=>({id:i,shelf:s,name:n,stock:q}));
-const KEY="thewhiskey.restocks.v1";
-let counts={};try{const saved=JSON.parse(localStorage.getItem(KEY)||"{}");if(saved&&typeof saved==="object"&&!Array.isArray(saved))for(const item of INVENTORY){const n=saved[item.id];if(Number.isSafeInteger(n)&&n>=0)counts[item.id]=Math.min(n,item.stock)}}catch(e){}
-let view="all",query="";
+
+const OLD_KEY="thewhiskey.restocks.v1",KEY="thewhiskey.stocking.v2";
+let needed={},grabbed={},mode="list",view="all",query="";
 const el=id=>document.getElementById(id);
-const qty=id=>counts[id]||0;
-const safe=text=>String(text).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-function save(){try{localStorage.setItem(KEY,JSON.stringify(counts))}catch(e){console.warn("Local storage unavailable",e)}}
+const safe=t=>String(t).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const bounded=(v,max)=>Number.isSafeInteger(v)&&v>0?Math.min(v,max):0;
+try{
+ const previous=JSON.parse(localStorage.getItem(OLD_KEY)||"{}");
+ const stored=JSON.parse(localStorage.getItem(KEY)||"null");
+ const raw=stored&&typeof stored==="object"?stored:{needed:previous,grabbed:{},mode:"list"};
+ for(const i of INVENTORY){
+  needed[i.id]=bounded(raw.needed?.[i.id],i.stock);
+  grabbed[i.id]=bounded(raw.grabbed?.[i.id],needed[i.id]);
+ }
+ mode=raw.mode==="stock"?"stock":"list";
+}catch(e){for(const i of INVENTORY){needed[i.id]=0;grabbed[i.id]=0}}
+const n=i=>needed[i.id]||0,g=i=>grabbed[i.id]||0;
+function save(){try{localStorage.setItem(KEY,JSON.stringify({needed,grabbed,mode}))}catch(e){console.warn("Local storage unavailable",e)}}
 function render(){
- const total=INVENTORY.reduce((sum,i)=>sum+qty(i.id),0),needed=INVENTORY.filter(i=>qty(i.id)>0).length;
- el("bottleTotal").textContent=total;el("itemTotal").textContent=needed;el("remaining").textContent=INVENTORY.length-needed;
+ el("listMode").setAttribute("aria-pressed",String(mode==="list"));
+ el("stockMode").setAttribute("aria-pressed",String(mode==="stock"));
+ el("modeHint").textContent=mode==="list"?"Set how many bottles you need for each product.":"Count bottles as you grab them. Needed stays unchanged.";
+ const qty=i=>mode==="list"?n(i):g(i);
+ const total=INVENTORY.reduce((sum,i)=>sum+qty(i),0),active=INVENTORY.filter(i=>qty(i)>0).length;
+ el("bottleTotal").textContent=total;el("itemTotal").textContent=active;el("remaining").textContent=INVENTORY.length-active;
+ el("bottleTotal").nextElementSibling.textContent=mode==="list"?"Bottles needed":"Bottles grabbed";
+ el("itemTotal").nextElementSibling.textContent=mode==="list"?"Products needed":"Products grabbed";
+ el("remaining").nextElementSibling.textContent="Products at zero";
+ el("reset").textContent=mode==="list"?"Reset needed":"Reset grabbed";
  el("shelves").innerHTML=["top","bottom"].map(s=>{
- if(view!=="all"&&view!=="needed"&&view!==s)return "";
- const candidates=INVENTORY.filter(i=>i.shelf===s);
- const rows=candidates.filter(i=>(view!=="needed"||qty(i.id)>0)&&i.name.toLowerCase().includes(query));
- if(!rows.length&&view==="needed")return "";
- const label=s==="top"?"Top shelf":"Bottom shelf",sum=candidates.reduce((v,i)=>v+qty(i.id),0);
- return '<section class="shelf" aria-label="'+label+'"><div class="shelf-head"><div class="section-title"><h2>'+label+'</h2><span class="pill">'+sum+' needed</span></div><small>'+candidates.length+' products</small></div><div class="items">'+(rows.length?rows.map(i=>'<div class="item '+(qty(i.id)?"active":"")+'"><div><div class="name">'+safe(i.name)+'</div></div><div class="controls"><span class="stock" aria-label="Par level '+i.stock+' bottles"><span class="stock-label">Par</span><span class="stock-number">'+i.stock+'</span></span><div class="counter"><button aria-label="Remove one '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!qty(i.id)?"disabled":"")+'>−</button><output aria-label="Bottles needed" aria-live="polite">'+qty(i.id)+'</output><button class="plus" aria-label="Add one '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(qty(i.id)>=i.stock?"disabled":"")+'>+</button></div></div></div>').join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>'
+  if(view!=="all"&&view!=="needed"&&view!==s)return "";
+  const candidates=INVENTORY.filter(i=>i.shelf===s);
+  const rows=candidates.filter(i=>(view!=="needed"||n(i)>0)&&i.name.toLowerCase().includes(query));
+  if(!rows.length&&view==="needed")return "";
+  const label=s==="top"?"Top shelf":"Bottom shelf",sum=candidates.reduce((v,i)=>v+qty(i),0);
+  return '<section class="shelf" aria-label="'+label+'"><div class="shelf-head"><div class="section-title"><h2>'+label+'</h2><span class="pill">'+sum+(mode==="list"?" needed":" grabbed")+'</span></div><small>'+candidates.length+' products</small></div><div class="items">'+(rows.length?rows.map(i=>{
+   const count=qty(i),max=mode==="list"?i.stock:n(i);
+   return '<div class="item '+(n(i)||g(i)?"active":"")+'"><div class="name">'+safe(i.name)+'</div><div class="controls">'+
+    '<span class="field par" aria-label="Par '+i.stock+'"><small>Par</small><b>'+i.stock+'</b></span>'+
+    '<span class="field needed '+(mode==="list"?"editing":"")+'" aria-label="Needed '+n(i)+'"><small>Needed</small><b>'+n(i)+'</b></span>'+
+    '<span class="field grabbed '+(mode==="stock"?"editing":"")+'" aria-label="Grabbed '+g(i)+'"><small>Grabbed</small><b>'+g(i)+'</b></span>'+
+    '<div class="counter"><button aria-label="Decrease '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!count?"disabled":"")+'>−</button><output aria-label="Current '+(mode==="list"?"needed":"grabbed")+' count">'+count+'</output><button class="plus" aria-label="Increase '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(count>=max?"disabled":"")+'>+</button></div></div></div>'
+  }).join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>';
  }).join("")||'<div class="empty">No matching bottles. Try another search or shelf.</div>';
 }
-el("shelves").addEventListener("click",e=>{const btn=e.target.closest("button[data-id]");if(!btn)return;const id=Number(btn.dataset.id),delta=Number(btn.dataset.change);const item=INVENTORY.find(i=>i.id===id);if(!item)return;counts[id]=Math.max(0,Math.min(item.stock,qty(id)+delta));save();render()});
+el("shelves").addEventListener("click",e=>{
+ const btn=e.target.closest("button[data-id]");if(!btn)return;
+ const i=INVENTORY[Number(btn.dataset.id)];if(!i)return;
+ const delta=Number(btn.dataset.change);
+ if(mode==="list"){
+  needed[i.id]=Math.max(0,Math.min(i.stock,n(i)+delta));
+  grabbed[i.id]=Math.min(g(i),n(i));
+ }else grabbed[i.id]=Math.max(0,Math.min(n(i),g(i)+delta));
+ save();render();
+});
+el("listMode").addEventListener("click",()=>{mode="list";save();render()});
+el("stockMode").addEventListener("click",()=>{mode="stock";save();render()});
 el("search").addEventListener("input",e=>{query=e.target.value.trim().toLowerCase();render()});
 document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{view=b.dataset.view;document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",String(t===b)));render()}));
-el("reset").addEventListener("click",()=>{if(!Object.values(counts).some(Boolean))return;if(confirm("Clear all bottle counts? This cannot be undone.")){counts={};save();render()}});
-function selected(){return INVENTORY.filter(i=>qty(i.id)>0)}
-el("copy").addEventListener("click",async()=>{const rows=selected();if(!rows.length){alert("Add bottles before copying your list.");return}const body=["THE WHISKEY — RESTOCK LIST",...["top","bottom"].flatMap(s=>{const items=rows.filter(i=>i.shelf===s);return items.length?["",s==="top"?"TOP SHELF":"BOTTOM SHELF",...items.map(i=>qty(i.id)+" × "+i.name)]:[]}),"", "TOTAL: "+rows.reduce((n,i)=>n+qty(i.id),0)+" bottles"].join("\n");try{await navigator.clipboard.writeText(body);const b=el("copy"),old=b.textContent;b.textContent="Copied!";setTimeout(()=>b.textContent=old,1600)}catch(e){prompt("Copy your restock list:",body)}});
-el("export").addEventListener("click",()=>{const rows=selected();if(!rows.length){alert("Add bottles before exporting.");return}const csv=["Shelf,Product,Bottles Needed,Stock List Quantity",...rows.map(i=>[i.shelf==="top"?"Top Shelf":"Bottom Shelf",i.name,qty(i.id),i.stock].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(","))].join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="the-whiskey-restock-"+new Date().toISOString().slice(0,10)+".csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+el("reset").addEventListener("click",()=>{
+ const data=mode==="list"?needed:grabbed;
+ if(!Object.values(data).some(Boolean))return;
+ const label=mode==="list"?"needed counts (and any grabbed counts)":"grabbed counts";
+ if(confirm("Clear all "+label+"? This cannot be undone.")){
+  if(mode==="list"){needed={};grabbed={}}else grabbed={};
+  save();render();
+ }
+});
+function selected(){return INVENTORY.filter(i=>n(i)>0)}
+el("copy").addEventListener("click",async()=>{
+ const rows=selected();if(!rows.length){alert("Add needed bottles before copying your list.");return}
+ const body=["THE WHISKEY — STOCK LIST",...["top","bottom"].flatMap(s=>{
+  const items=rows.filter(i=>i.shelf===s);
+  return items.length?["",s==="top"?"TOP SHELF":"BOTTOM SHELF",...items.map(i=>i.name+": "+n(i)+" needed, "+g(i)+" grabbed")]:[]
+ }),"","NEEDED: "+rows.reduce((v,i)=>v+n(i),0)+" | GRABBED: "+rows.reduce((v,i)=>v+g(i),0)].join("\n");
+ try{await navigator.clipboard.writeText(body);const b=el("copy"),old=b.textContent;b.textContent="Copied!";setTimeout(()=>b.textContent=old,1600)}
+ catch(e){prompt("Copy your stock list:",body)}
+});
+el("export").addEventListener("click",()=>{
+ const rows=selected();if(!rows.length){alert("Add needed bottles before exporting.");return}
+ const csv=["Shelf,Product,Par,Needed,Grabbed",...rows.map(i=>[i.shelf==="top"?"Top Shelf":"Bottom Shelf",i.name,i.stock,n(i),g(i)].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(","))].join("\r\n");
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="the-whiskey-stock-"+new Date().toISOString().slice(0,10)+".csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
 render();
 </script></body></html>
