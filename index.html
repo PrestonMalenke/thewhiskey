@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#131b22">
+<title>The Whiskey | Back Bar Stock</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eaf0f2;background:#10171d;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid #facb75;outline-offset:3px}
+.shell{max-width:1040px;margin:auto;padding:24px 20px 100px}.eyebrow{text-transform:uppercase;letter-spacing:.19em;font-size:11px;font-weight:800;color:#e9b96e}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px}.brand h1{font-family:Georgia,serif;font-size:clamp(32px,5vw,52px);font-weight:500;letter-spacing:-.04em;margin:5px 0}.sub{color:#a9b9bf;margin:0;font-size:14px;line-height:1.5}
+.brand-icon{width:48px;height:48px;display:grid;place-items:center;color:#f5ca85;background:#27343b;border:1px solid #53606a;border-radius:15px;font-size:24px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:26px 0 22px}.stat{border:1px solid #33434b;background:#1b2830;border-radius:17px;padding:18px}.stat strong{display:block;color:#fbcb7c;font-size:clamp(28px,4.5vw,39px);font-variant-numeric:tabular-nums}.stat span{font-size:12px;color:#a9b9bf;font-weight:700}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:13px}.search{background:#1a262e;color:white;border:1px solid #42515a;border-radius:12px;padding:13px 15px;flex:1;min-width:210px}.btn{color:#ecf0ef;background:#26343c;border:1px solid #4a5960;border-radius:12px;padding:12px 16px;font-size:13px;font-weight:750}.btn:hover{background:#354650}.btn:disabled{opacity:.4;cursor:not-allowed}
+.tabs{display:flex;gap:8px;margin:14px 0 22px;overflow-x:auto}.tab{white-space:nowrap;color:#aab8bd;background:transparent;border:1px solid #3f5059;padding:10px 16px;border-radius:999px;font-size:13px;font-weight:750}.tab[aria-selected=true]{background:#edbe73;color:#1c252a;border-color:#edbe73}
+.shelf{margin-top:28px}.shelf-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 12px;gap:10px}.shelf h2{font-family:Georgia,serif;font-weight:500;font-size:28px;margin:0}.shelf small{color:#b5c3c8}.items{border:1px solid #34434b;border-radius:18px;overflow:hidden;background:#19262d}.item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding:12px 16px;min-height:69px;border-bottom:1px solid #32414a}.item:last-child{border-bottom:0}.item.active{background:#25343a}.name{font-size:15px;font-weight:650;overflow-wrap:anywhere}.stock{display:block;color:#9fb0b7;font-size:12px;margin-top:4px;font-weight:500}
+.counter{display:flex;align-items:center;gap:6px}.counter button{height:42px;width:42px;border-radius:11px;background:#30424b;color:#eff3f3;border:1px solid #53646c;font-size:24px;line-height:1;touch-action:manipulation}.counter button.plus{background:#e7b86e;color:#20282c;border-color:#e7b86e}.counter button:active{transform:scale(.93)}.counter output{width:34px;text-align:center;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}.counter button:disabled{opacity:.25}
+.empty{padding:38px 20px;text-align:center;color:#a9b9bf}.note{font-size:12px;color:#90a4ad;line-height:1.65;margin-top:25px}.pill{background:#3b4a4b;color:#f6ce8c;font-weight:800;font-size:12px;padding:5px 9px;border-radius:999px}.section-title{display:flex;gap:10px;align-items:center}
+footer{margin-top:40px;color:#83969f;font-size:12px}
+@media(max-width:540px){.shell{padding:18px 12px 96px}.brand h1{font-size:36px}.stat{padding:14px 12px}.stat strong{font-size:29px}.stat span{font-size:11px}.item{padding:10px 12px;gap:8px}.name{font-size:14px}.counter{gap:3px}.counter button{height:40px;width:40px}.counter output{width:28px}.btn{padding:11px 13px}.shelf h2{font-size:26px}}
+@media print{body{background:white;color:black}.tools,.tabs,.counter button,.note,footer{display:none!important}.shell{max-width:100%;padding:0}.stat,.items{background:white;border-color:#ddd}.stat strong{color:black}.item.active{background:#eee}.counter output{color:black}.sub,.stock,.shelf small{color:#444}.shelf{break-inside:avoid}}
+</style>
+</head>
+<body><main class="shell">
+<header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Tap <strong>+</strong> for every bottle needed. Your count stays on this device.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
+<div class="summary" aria-live="polite"><div class="stat"><strong id="bottleTotal">0</strong><span>Bottles to pull</span></div><div class="stat"><strong id="itemTotal">0</strong><span>Products needed</span></div><div class="stat"><strong id="remaining">38</strong><span>Products at zero</span></div></div>
+<div class="tools"><input type="search" id="search" class="search" placeholder="Search bottles…" aria-label="Search bottles" autocomplete="off"><button class="btn" id="export">Export CSV</button><button class="btn" id="copy">Copy list</button><button class="btn" id="reset">Reset counts</button></div>
+<div class="tabs" role="tablist" aria-label="Shelf filter"><button class="tab" role="tab" data-view="all" aria-selected="true">All bottles</button><button class="tab" role="tab" data-view="top" aria-selected="false">Top shelf</button><button class="tab" role="tab" data-view="bottom" aria-selected="false">Bottom shelf</button><button class="tab" role="tab" data-view="needed" aria-selected="false">Needed only</button></div>
+<div id="shelves"></div>
+<p class="note">“Stock list” quantities are the reference inventory from October 10, 2026. Counters represent how many bottles to pull, not a subtraction from inventory. Counts are saved locally in this browser, not shared across devices. Export or copy your list to share it.</p>
+<footer>THE WHISKEY · STOCK CHECK</footer></main>
+<script>
+"use strict";
+const INVENTORY=[
+["top","Peach Schnapps",2],["top","Pamplemousse",2],["top","Bénédictine",1],["top","Aperol",2],["top","Campari",2],["top","Amaro Nonino",1],["top","Cointreau",2],["top","Amaro CioCiaro",1],["top","Fernet",2],["top","Giffard Violette",2],["top","Elderflower Liqueur",1],["top","Allspice Dram",2],["top","Amaretto",2],["top","Borghetti Espresso",2],["top","Oatrageous Coconut",2],["top","Oatrageous Bourbon Cream",2],["top","White Chocolate Liqueur",2],["top","Pistachio Liqueur",2],["top","Cartron Banane Liqueur",2],["top","Tito's Vodka",2],["top","Old Raj Gin (Red)",2],["top","Bacardi Spiced Rum",2],["top","Por Lo Bueno Mezcal",2],["top","Jameson",2],["top","Tokki Black",2],["top","Elijah Craig Toasted Rye",2],
+["bottom","Wheatley Vodka",6],["bottom","Spring 44 Gin",6],["bottom","Bacardi Blanca",6],["bottom","Corazón Blanco",6],["bottom","Evan Williams",6],["bottom","Old Forester Rye",6],["bottom","Irish Whiskey (unspecified)",3],["bottom","Scotch (unspecified)",3],["bottom","Still Austin Rye",2],["bottom","Carpano Antica Formula",2],["bottom","Hine Cognac",1],["bottom","Brugal Añejo",1]
+].map(([s,n,q],i)=>({id:i,shelf:s,name:n,stock:q}));
+const KEY="thewhiskey.restocks.v1";
+let counts={};try{const saved=JSON.parse(localStorage.getItem(KEY)||"{}");if(saved&&typeof saved==="object"&&!Array.isArray(saved))for(const item of INVENTORY){const n=saved[item.id];if(Number.isSafeInteger(n)&&n>=0&&n<=9999)counts[item.id]=n}}catch(e){}
+let view="all",query="";
+const el=id=>document.getElementById(id);
+const qty=id=>counts[id]||0;
+const safe=text=>String(text).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+function save(){try{localStorage.setItem(KEY,JSON.stringify(counts))}catch(e){console.warn("Local storage unavailable",e)}}
+function render(){
+ const total=INVENTORY.reduce((sum,i)=>sum+qty(i.id),0),needed=INVENTORY.filter(i=>qty(i.id)>0).length;
+ el("bottleTotal").textContent=total;el("itemTotal").textContent=needed;el("remaining").textContent=INVENTORY.length-needed;
+ el("shelves").innerHTML=["top","bottom"].map(s=>{
+ if(view!=="all"&&view!=="needed"&&view!==s)return "";
+ const candidates=INVENTORY.filter(i=>i.shelf===s);
+ const rows=candidates.filter(i=>(view!=="needed"||qty(i.id)>0)&&i.name.toLowerCase().includes(query));
+ if(!rows.length&&view==="needed")return "";
+ const label=s==="top"?"Top shelf":"Bottom shelf",sum=candidates.reduce((v,i)=>v+qty(i.id),0);
+ return '<section class="shelf" aria-label="'+label+'"><div class="shelf-head"><div class="section-title"><h2>'+label+'</h2><span class="pill">'+sum+' needed</span></div><small>'+candidates.length+' products</small></div><div class="items">'+(rows.length?rows.map(i=>'<div class="item '+(qty(i.id)?"active":"")+'"><div><div class="name">'+safe(i.name)+'</div><span class="stock">Stock list: '+i.stock+' bottles</span></div><div class="counter"><button aria-label="Remove one '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!qty(i.id)?"disabled":"")+'>−</button><output aria-label="Bottles needed" aria-live="polite">'+qty(i.id)+'</output><button class="plus" aria-label="Add one '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(qty(i.id)>=9999?"disabled":"")+'>+</button></div></div>').join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>'
+ }).join("")||'<div class="empty">No matching bottles. Try another search or shelf.</div>';
+}
+el("shelves").addEventListener("click",e=>{const btn=e.target.closest("button[data-id]");if(!btn)return;const id=Number(btn.dataset.id),delta=Number(btn.dataset.change);counts[id]=Math.max(0,Math.min(9999,qty(id)+delta));save();render()});
+el("search").addEventListener("input",e=>{query=e.target.value.trim().toLowerCase();render()});
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{view=b.dataset.view;document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",String(t===b)));render()}));
+el("reset").addEventListener("click",()=>{if(!Object.values(counts).some(Boolean))return;if(confirm("Clear all bottle counts? This cannot be undone.")){counts={};save();render()}});
+function selected(){return INVENTORY.filter(i=>qty(i.id)>0)}
+el("copy").addEventListener("click",async()=>{const rows=selected();if(!rows.length){alert("Add bottles before copying your list.");return}const body=["THE WHISKEY — RESTOCK LIST",...["top","bottom"].flatMap(s=>{const items=rows.filter(i=>i.shelf===s);return items.length?["",s==="top"?"TOP SHELF":"BOTTOM SHELF",...items.map(i=>qty(i.id)+" × "+i.name)]:[]}),"", "TOTAL: "+rows.reduce((n,i)=>n+qty(i.id),0)+" bottles"].join("\n");try{await navigator.clipboard.writeText(body);const b=el("copy"),old=b.textContent;b.textContent="Copied!";setTimeout(()=>b.textContent=old,1600)}catch(e){prompt("Copy your restock list:",body)}});
+el("export").addEventListener("click",()=>{const rows=selected();if(!rows.length){alert("Add bottles before exporting.");return}const csv=["Shelf,Product,Bottles Needed,Stock List Quantity",...rows.map(i=>[i.shelf==="top"?"Top Shelf":"Bottom Shelf",i.name,qty(i.id),i.stock].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(","))].join("\r\n");const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const a=document.createElement("a");a.href=url;a.download="the-whiskey-restock-"+new Date().toISOString().slice(0,10)+".csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+render();
+</script></body></html>
