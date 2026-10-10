@@ -164,7 +164,7 @@ function render(){
   }).join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>';
  }).join("")||'<div class="empty">No bottles needed yet. Switch to List Making to create your stock list.</div>';
 }
-el("shelves").addEventListener("click",e=>{
+el("shelves").addEventListener("click",async e=>{
  const btn=e.target.closest("button[data-id]");if(!btn)return;
  const i=INVENTORY[Number(btn.dataset.id)];if(!i)return;
  const delta=Number(btn.dataset.change);
