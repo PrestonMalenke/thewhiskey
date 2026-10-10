@@ -86,11 +86,11 @@ footer{margin-top:40px;color:#83969f;font-size:12px}
 </style>
 </head>
 <body><main class="shell">
-<header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Build your list, then track bottles grabbed. Counts stay on this device.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
-<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="tools reset-tools"><button class="btn" id="resetNeeded" type="button">Reset Needed</button><button class="btn" id="resetGrabbed" type="button">Reset Grabbed</button></div>
+<header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Build your list, then track bottles grabbed. Needed is shared after Save; Grabbed syncs automatically.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
+<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="tools reset-tools"><button class="btn" id="saveNeeded" type="button">Save Needed List</button><span id="syncStatus" role="status" aria-live="polite" style="align-self:center;color:#f6ce8c;font-weight:750">Connecting…</span><button class="btn" id="resetNeeded" type="button">Reset Needed</button><button class="btn" id="resetGrabbed" type="button">Reset Grabbed</button></div>
 <dialog id="resetDialog" aria-labelledby="resetTitle" aria-describedby="resetDescription"><div class="dialog-body"><div class="dialog-eyebrow">CONFIRM RESET</div><h2 id="resetTitle">Reset counts?</h2><p id="resetDescription"></p><div class="dialog-actions"><button class="btn" id="cancelReset" type="button">Cancel</button><button class="btn danger" id="confirmReset" type="button">Confirm Reset</button></div></div></dialog>
 <div id="shelves"></div>
-<p class="note">Par is fixed by the stock sheet. In List Making, edit Needed (up to Par). In Stocking, edit Grabbed (up to Needed). Switching modes preserves both values. Counts are saved locally on this device.</p>
+<p class="note">Par is fixed by the stock sheet. In List Making, edit Needed (up to Par). In Stocking, edit Grabbed (up to Needed). Switching modes preserves both values. Shared counts are stored in Cloudflare. List Making changes stay on this device until Save Needed List is tapped. Grabbed changes save immediately.</p>
 <footer>THE WHISKEY · STOCK CHECK</footer></main>
 <script>
 "use strict";
@@ -100,7 +100,7 @@ const INVENTORY=[
 ].map(([s,n,q],i)=>({id:i,shelf:s,name:n,stock:q}));
 
 const OLD_KEY="thewhiskey.restocks.v1",KEY="thewhiskey.stocking.v2";
-let needed={},grabbed={},mode="list";
+let needed={},grabbed={},mode="list",connected=false,dirty=false,loading=false;
 const el=id=>document.getElementById(id);
 const safe=t=>String(t).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const bounded=(v,max)=>Number.isSafeInteger(v)&&v>0?Math.min(v,max):0;
@@ -116,6 +116,34 @@ try{
 }catch(e){for(const i of INVENTORY){needed[i.id]=0;grabbed[i.id]=0}}
 const n=i=>needed[i.id]||0,g=i=>grabbed[i.id]||0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify({needed,grabbed,mode}))}catch(e){console.warn("Local storage unavailable",e)}}
+const syncStatus=t=>{el("syncStatus").textContent=t};
+async function api(method="GET",body){
+ const r=await fetch("/api/stock",{method,headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined,cache:"no-store"});
+ const data=await r.json().catch(()=>({error:"Invalid server response"}));
+ if(!r.ok)throw Error(data.error||"Unable to connect");
+ return data;
+}
+function applyRemote(data,{keepDraft=false}={}){
+ for(const i of INVENTORY){
+  if(!keepDraft)needed[i.id]=bounded(data.needed?.[i.id],i.stock);
+  grabbed[i.id]=bounded(data.grabbed?.[i.id],needed[i.id]);
+ }
+ save();render();
+}
+async function refresh(){
+ if(dirty||loading)return;
+ loading=true;
+ try{const data=await api();connected=true;applyRemote(data);syncStatus("Shared counts current")}
+ catch(e){connected=false;syncStatus("Shared sync unavailable: "+e.message)}
+ finally{loading=false}
+}
+el("saveNeeded").addEventListener("click",async()=>{
+ if(!connected){syncStatus("Cannot save: shared database unavailable");return}
+ el("saveNeeded").disabled=true;syncStatus("Saving Needed…");
+ try{const data=await api("PUT",{needed});dirty=false;applyRemote(data);syncStatus("Needed list saved for everyone")}
+ catch(e){syncStatus("Save failed: "+e.message)}
+ finally{el("saveNeeded").disabled=false}
+});
 function render(){
  el("listMode").setAttribute("aria-pressed",String(mode==="list"));
  el("stockMode").setAttribute("aria-pressed",String(mode==="stock"));
@@ -144,7 +172,14 @@ el("shelves").addEventListener("click",e=>{
   needed[i.id]=Math.max(0,Math.min(i.stock,n(i)+delta));
   grabbed[i.id]=Math.min(g(i),n(i));
  }else grabbed[i.id]=Math.max(0,Math.min(n(i),g(i)+delta));
- save();render();
+ if(mode==="list"){dirty=true;syncStatus("Unsaved Needed changes");save();render()}
+ else{
+  save();render();
+  if(!connected){syncStatus("Offline — Grabbed not shared");return}
+  syncStatus("Saving Grabbed…");
+  try{const data=await api("PATCH",{id:i.id,grabbed:g(i)});applyRemote(data,{keepDraft:dirty});syncStatus("Grabbed saved")}
+  catch(e){syncStatus("Grabbed save failed: "+e.message);await refresh()}
+ }
 });
 el("listMode").addEventListener("click",()=>{mode="list";save();render()});
 el("stockMode").addEventListener("click",()=>{mode="stock";save();render()});
@@ -171,12 +206,18 @@ el("resetGrabbed").addEventListener("click",e=>openReset("grabbed",e.currentTarg
 el("cancelReset").addEventListener("click",closeReset);
 resetDialog.addEventListener("cancel",e=>{e.preventDefault();closeReset()});
 resetDialog.addEventListener("click",e=>{if(e.target===resetDialog)closeReset()});
-el("confirmReset").addEventListener("click",()=>{
+el("confirmReset").addEventListener("click",async()=>{
+ const pendingKind=pendingReset;
  if(pendingReset==="needed"){needed={};grabbed={}}
  else if(pendingReset==="grabbed")grabbed={};
  else return;
  save();closeReset();render();
+ if(!connected){syncStatus("Reset is local only — shared database unavailable");return}
+ const kind=pendingKind;
+ syncStatus("Updating shared list…");
+ try{const data=await api("POST",{reset:kind});dirty=false;applyRemote(data);syncStatus("Shared "+kind+" counts reset")}
+ catch(e){syncStatus("Shared reset failed: "+e.message)}
 });
 
-render();
+render();refresh();setInterval(refresh,15000);
 </script></body></html>
