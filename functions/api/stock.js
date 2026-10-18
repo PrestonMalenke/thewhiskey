@@ -1,6 +1,6 @@
 const headers={"content-type":"application/json","cache-control":"no-store"};
 const respond=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
-const inventory=[2,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,6,6,6,6,6,6,3,3,2,2,1,1];
+const inventory=[2,2,1,2,2,1,2,1,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,6,6,6,6,6,6,3,3,2,2,1,1,12,14,14,7,8,8,8,7,7,5,5];
 async function dbFor(env){
  if(!env.STOCK_DB)throw new Error("Missing Cloudflare D1 binding STOCK_DB");
  await env.STOCK_DB.prepare("CREATE TABLE IF NOT EXISTS counts (id INTEGER PRIMARY KEY, needed INTEGER NOT NULL DEFAULT 0, grabbed INTEGER NOT NULL DEFAULT 0)").run();
