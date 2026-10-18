@@ -87,7 +87,7 @@ footer{margin-top:40px;color:#83969f;font-size:12px}
 </head>
 <body><main class="shell">
 <header><div class="brand"><div class="eyebrow">Back bar · Restock checklist</div><h1>The Whiskey</h1><p class="sub">Build your list, then track bottles grabbed. Needed is shared after Save; Grabbed syncs automatically.</p></div><div class="brand-icon" aria-hidden="true">🥃</div></header>
-<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles you need for each product.</p><div class="tools reset-tools"><button class="btn" id="saveNeeded" type="button">Save Needed List</button><span id="syncStatus" role="status" aria-live="polite" style="align-self:center;color:#f6ce8c;font-weight:750">Connecting…</span><button class="btn" id="resetNeeded" type="button">Reset Needed</button><button class="btn" id="resetGrabbed" type="button">Reset Grabbed</button></div>
+<div class="mode-switch" role="group" aria-label="Stocking mode"><button id="listMode" class="mode-button" aria-pressed="true" type="button">List Making</button><button id="stockMode" class="mode-button" aria-pressed="false" type="button">Stocking</button></div><p class="mode-hint" id="modeHint">Set how many bottles or cans you need for each product.</p><div class="tools reset-tools"><button class="btn" id="saveNeeded" type="button">Save Needed List</button><span id="syncStatus" role="status" aria-live="polite" style="align-self:center;color:#f6ce8c;font-weight:750">Connecting…</span><button class="btn" id="resetNeeded" type="button">Reset Needed</button><button class="btn" id="resetGrabbed" type="button">Reset Grabbed</button></div>
 <dialog id="resetDialog" aria-labelledby="resetTitle" aria-describedby="resetDescription"><div class="dialog-body"><div class="dialog-eyebrow">CONFIRM RESET</div><h2 id="resetTitle">Reset counts?</h2><p id="resetDescription"></p><div class="dialog-actions"><button class="btn" id="cancelReset" type="button">Cancel</button><button class="btn danger" id="confirmReset" type="button">Confirm Reset</button></div></div></dialog>
 <div id="shelves"></div>
 <p class="note">Par is fixed by the stock sheet. In List Making, edit Needed (up to Par). In Stocking, edit Grabbed (up to Needed). Switching modes preserves both values. Shared counts are stored in Cloudflare. List Making changes stay on this device until Save Needed List is tapped. Grabbed changes save immediately.</p>
@@ -96,7 +96,8 @@ footer{margin-top:40px;color:#83969f;font-size:12px}
 "use strict";
 const INVENTORY=[
 ["top","Peach Schnapps",2],["top","Pamplemousse",2],["top","Bénédictine",1],["top","Aperol",2],["top","Campari",2],["top","Amaro Nonino",1],["top","Cointreau",2],["top","Amaro CioCiaro",1],["top","Fernet",2],["top","Giffard Violette",2],["top","Elderflower Liqueur",1],["top","Allspice Dram",2],["top","Amaretto",2],["top","Borghetti Espresso",2],["top","Oatrageous Coconut",2],["top","Oatrageous Bourbon Cream",2],["top","White Chocolate Liqueur",2],["top","Pistachio Liqueur",2],["top","Cartron Banane Liqueur",2],["top","Tito's Vodka",2],["top","Old Raj Gin (Red)",2],["top","Bacardi Spiced Rum",2],["top","Por Lo Bueno Mezcal",2],["top","Jameson",2],["top","Tokki Black",2],["top","Elijah Craig Toasted Rye",2],
-["bottom","Wheatley Vodka",6],["bottom","Spring 44 Gin",6],["bottom","Bacardi Blanca",6],["bottom","Corazón Blanco",6],["bottom","Evan Williams",6],["bottom","Old Forester Rye",6],["bottom","Irish Whiskey (unspecified)",3],["bottom","Scotch (unspecified)",3],["bottom","Still Austin Rye",2],["bottom","Carpano Antica Formula",2],["bottom","Hine Cognac",1],["bottom","Brugal Añejo",1]
+["bottom","Wheatley Vodka",6],["bottom","Spring 44 Gin",6],["bottom","Bacardi Blanca",6],["bottom","Corazón Blanco",6],["bottom","Evan Williams",6],["bottom","Old Forester Rye",6],["bottom","Irish Whiskey (unspecified)",3],["bottom","Scotch (unspecified)",3],["bottom","Still Austin Rye",2],["bottom","Carpano Antica Formula",2],["bottom","Hine Cognac",1],["bottom","Brugal Añejo",1],
+["fridge","Modelo",12],["fridge","Corona",14],["fridge","Michelob Ultra",14],["fridge","Bud Light",7],["fridge","Carbliss",8],["fridge","NÜTRL",8],["fridge","Michelob Ultra Zero",8],["fridge","Athletic NA",7],["fridge","Guinness Non-Alcoholic",7],["fridge","Jarritos",5],["fridge","Mexican Coke",5]
 ].map(([s,n,q],i)=>({id:i,shelf:s,name:n,stock:q}));
 
 const OLD_KEY="thewhiskey.restocks.v1",KEY="thewhiskey.stocking.v2";
@@ -147,13 +148,13 @@ el("saveNeeded").addEventListener("click",async()=>{
 function render(){
  el("listMode").setAttribute("aria-pressed",String(mode==="list"));
  el("stockMode").setAttribute("aria-pressed",String(mode==="stock"));
- el("modeHint").textContent=mode==="list"?"Set how many bottles you need for each product.":"Count bottles as you grab them. Needed stays unchanged.";
+ el("modeHint").textContent=mode==="list"?"Set how many bottles you need for each product.":"Count products as you grab them. Needed stays unchanged.";
  const qty=i=>mode==="list"?n(i):g(i);
- el("shelves").innerHTML=["top","bottom"].map(s=>{
+ el("shelves").innerHTML=["top","bottom","fridge"].map(s=>{
   const candidates=INVENTORY.filter(i=>i.shelf===s);
   const rows=candidates.filter(i=>mode==="list"||n(i)>0);
   if(!rows.length&&mode==="stock")return "";
-  const label=s==="top"?"Top shelf":"Bottom shelf",sum=candidates.reduce((v,i)=>v+qty(i),0);
+  const label=s==="top"?"Top shelf":s==="bottom"?"Bottom shelf":"Beer Fridge",sum=candidates.reduce((v,i)=>v+qty(i),0);
   return '<section class="shelf" aria-label="'+label+'"><div class="shelf-head"><div class="section-title"><h2>'+label+'</h2><span class="pill">'+sum+(mode==="list"?" needed":" grabbed")+'</span></div><small>'+candidates.length+' products</small></div><div class="items">'+(rows.length?rows.map(i=>{
    const count=qty(i),max=mode==="list"?i.stock:n(i);
    return '<div class="item '+(n(i)||g(i)?"active ":"")+(mode==="stock"&&n(i)>0&&g(i)===n(i)?"complete":"")+'"><div class="name">'+safe(i.name)+'</div><div class="controls">'+
@@ -161,8 +162,8 @@ function render(){
     '<span class="field needed '+(mode==="list"?"editing":"")+'" aria-label="Needed '+n(i)+'"><small>Needed</small><b>'+n(i)+'</b></span>'+
     '<span class="field grabbed '+(mode==="stock"?"editing":"")+'" aria-label="Grabbed '+g(i)+'"><small>Grabbed</small><b>'+g(i)+'</b></span>'+
     '<div class="counter"><button aria-label="Decrease '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!count?"disabled":"")+'>−</button><output aria-label="Current '+(mode==="list"?"needed":"grabbed")+' count">'+count+'</output><button class="plus" aria-label="Increase '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(count>=max?"disabled":"")+'>+</button></div></div></div>'
-  }).join(""):'<div class="empty">No matching bottles.</div>')+'</div></section>';
- }).join("")||'<div class="empty">No bottles needed yet. Switch to List Making to create your stock list.</div>';
+  }).join(""):'<div class="empty">No matching products.</div>')+'</div></section>';
+ }).join("")||'<div class="empty">No products needed yet. Switch to List Making to create your stock list.</div>';
 }
 el("shelves").addEventListener("click",async e=>{
  const btn=e.target.closest("button[data-id]");if(!btn)return;
