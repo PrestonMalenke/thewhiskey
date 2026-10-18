@@ -83,6 +83,17 @@ footer{margin-top:40px;color:#83969f;font-size:12px}
 .dialog-body{padding:26px 22px}.dialog-eyebrow{color:#f6ca81;letter-spacing:.15em;font-size:12px;font-weight:900}.dialog-body h2{font-family:Georgia,serif;font-size:29px;margin:10px 0}.dialog-body p{color:#c4d1d4;font-size:16px;line-height:1.55}.dialog-actions{display:flex;gap:10px;margin-top:24px}.dialog-actions .btn{flex:1;min-height:52px;font-size:15px}
 .btn.danger{background:#a63e3e;color:white;border-color:#e18a8a}.btn.danger:hover{background:#bd4747}
 @media(max-width:390px){.dialog-actions{flex-direction:column}.reset-tools .btn{flex:1}}
+
+/* Collapsible stock sections */
+.shelf{border:0}
+.shelf>summary{list-style:none;cursor:pointer;align-items:center;min-height:52px;border-radius:12px;padding:6px 10px;margin-left:-10px;margin-right:-10px}
+.shelf>summary::-webkit-details-marker{display:none}
+.shelf>summary:hover{background:#1d2a32}
+.shelf>summary:focus-visible{outline:3px solid #facb75;outline-offset:2px}
+.shelf-chevron{width:22px;height:22px;flex-shrink:0;display:inline-grid;place-items:center;color:#f6ce8c;transition:transform .18s ease;font-size:22px;font-weight:700}
+.shelf:not([open]) .shelf-chevron{transform:rotate(-90deg)}
+.shelf>summary .section-title{min-width:0}
+@media(prefers-reduced-motion:reduce){.shelf-chevron{transition:none}}
 </style>
 </head>
 <body><main class="shell">
@@ -115,6 +126,9 @@ try{
  }
  mode=raw.mode==="stock"?"stock":"list";
 }catch(e){for(const i of INVENTORY){needed[i.id]=0;grabbed[i.id]=0}}
+const SHELF_OPEN_KEY="thewhiskey.shelves.open.v1";
+let shelfOpen={top:true,bottom:true,fridge:true};
+try{const saved=JSON.parse(localStorage.getItem(SHELF_OPEN_KEY)||"null");if(saved&&typeof saved==="object")for(const key of Object.keys(shelfOpen))if(typeof saved[key]==="boolean")shelfOpen[key]=saved[key]}catch(e){}
 const n=i=>needed[i.id]||0,g=i=>grabbed[i.id]||0;
 function save(){try{localStorage.setItem(KEY,JSON.stringify({needed,grabbed,mode}))}catch(e){console.warn("Local storage unavailable",e)}}
 const syncStatus=t=>{el("syncStatus").textContent=t};
@@ -155,16 +169,22 @@ function render(){
   const rows=candidates.filter(i=>mode==="list"||n(i)>0);
   if(!rows.length&&mode==="stock")return "";
   const label=s==="top"?"Top shelf":s==="bottom"?"Bottom shelf":"Beer Fridge",sum=candidates.reduce((v,i)=>v+qty(i),0);
-  return '<section class="shelf" aria-label="'+label+'"><div class="shelf-head"><div class="section-title"><h2>'+label+'</h2><span class="pill">'+sum+(mode==="list"?" needed":" grabbed")+'</span></div><small>'+candidates.length+' products</small></div><div class="items">'+(rows.length?rows.map(i=>{
+  return '<details class="shelf" data-shelf="'+s+'" aria-label="'+label+'" '+(shelfOpen[s]?"open":"")+'><summary class="shelf-head"><div class="section-title"><span class="shelf-chevron" aria-hidden="true">⌄</span><h2>'+label+'</h2><span class="pill">'+sum+(mode==="list"?" needed":" grabbed")+'</span></div><small>'+candidates.length+' products</small></summary><div class="items">'+(rows.length?rows.map(i=>{
    const count=qty(i),max=mode==="list"?i.stock:n(i);
    return '<div class="item '+(n(i)||g(i)?"active ":"")+(mode==="stock"&&n(i)>0&&g(i)===n(i)?"complete":"")+'"><div class="name">'+safe(i.name)+'</div><div class="controls">'+
     '<span class="field par" aria-label="Par '+i.stock+'"><small>Par</small><b>'+i.stock+'</b></span>'+
     '<span class="field needed '+(mode==="list"?"editing":"")+'" aria-label="Needed '+n(i)+'"><small>Needed</small><b>'+n(i)+'</b></span>'+
     '<span class="field grabbed '+(mode==="stock"?"editing":"")+'" aria-label="Grabbed '+g(i)+'"><small>Grabbed</small><b>'+g(i)+'</b></span>'+
     '<div class="counter"><button aria-label="Decrease '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="-1" '+(!count?"disabled":"")+'>−</button><output aria-label="Current '+(mode==="list"?"needed":"grabbed")+' count">'+count+'</output><button class="plus" aria-label="Increase '+(mode==="list"?"needed":"grabbed")+' for '+safe(i.name)+'" data-id="'+i.id+'" data-change="1" '+(count>=max?"disabled":"")+'>+</button></div></div></div>'
-  }).join(""):'<div class="empty">No matching products.</div>')+'</div></section>';
+  }).join(""):'<div class="empty">No matching products.</div>')+'</div></details>';
  }).join("")||'<div class="empty">No products needed yet. Switch to List Making to create your stock list.</div>';
 }
+el("shelves").addEventListener("toggle",e=>{
+ const details=e.target;
+ if(!(details instanceof HTMLDetailsElement)||!details.matches("[data-shelf]"))return;
+ shelfOpen[details.dataset.shelf]=details.open;
+ try{localStorage.setItem(SHELF_OPEN_KEY,JSON.stringify(shelfOpen))}catch(err){}
+},true);
 el("shelves").addEventListener("click",async e=>{
  const btn=e.target.closest("button[data-id]");if(!btn)return;
  const i=INVENTORY[Number(btn.dataset.id)];if(!i)return;
